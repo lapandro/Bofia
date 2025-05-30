@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تطبيق Bofia - تسجيل وطلبات</title>
+  <title>تطبيق Bofia - تسجيل برقم الهاتف</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -44,16 +44,20 @@
     }
   </style>
 </head>
-
 <body>
+
+  <!-- واجهة المصادقة -->
   <div id="authSection">
-    <h2>🧑‍💼 تسجيل دخول الزبون</h2>
-    <input type="email" id="email" placeholder="البريد الإلكتروني" />
-    <input type="password" id="password" placeholder="كلمة المرور" />
-    <button id="loginBtn">دخول</button>
-    <button id="signupBtn">تسجيل جديد</button>
+    <h2>📱 تسجيل الدخول برقم الجوال</h2>
+    <input type="text" id="phoneNumber" placeholder="أدخل رقمك (مثال: +9677XXXXXXXX)" />
+    <div id="recaptcha-container"></div>
+    <button id="sendCodeBtn">📩 إرسال رمز التحقق</button>
+
+    <input type="text" id="verificationCode" placeholder="رمز التحقق" class="hidden" />
+    <button id="verifyCodeBtn" class="hidden">✅ تأكيد الرمز</button>
   </div>
 
+  <!-- واجهة التطبيق بعد الدخول -->
   <div id="appSection" class="hidden">
     <h2>📋 إرسال الطلب</h2>
     <input type="text" id="name" placeholder="اسمك" />
@@ -70,9 +74,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
     import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAofstVnfa6b04e3rfMLMs9dY63_OzG9QU",
@@ -81,12 +84,10 @@
       projectId: "bofia-3370f",
       storageBucket: "bofia-3370f.firebasestorage.app",
       messagingSenderId: "953258977497",
-      appId: "1:953258977497:web:b6eca5c56850d82c29b6c8",
-      measurementId: "G-0W8NXGK08L"
+      appId: "1:953258977497:web:b6eca5c56850d82c29b6c8"
     };
 
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getDatabase(app);
     const auth = getAuth(app);
 
@@ -94,7 +95,37 @@
     const appSection = document.getElementById("appSection");
     const ordersDiv = document.getElementById("orders");
 
-    let currentUserId = null;
+    let confirmationResult;
+    let currentUserId;
+
+    window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+      'size': 'normal',
+      'callback': (response) => {
+        // reCAPTCHA solved
+      }
+    }, auth);
+
+    document.getElementById("sendCodeBtn").addEventListener("click", () => {
+      const phoneNumber = document.getElementById("phoneNumber").value;
+      signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
+        .then((result) => {
+          confirmationResult = result;
+          document.getElementById("verificationCode").classList.remove("hidden");
+          document.getElementById("verifyCodeBtn").classList.remove("hidden");
+          alert("📩 تم إرسال الرمز إلى هاتفك");
+        }).catch((error) => {
+          alert("❗ خطأ: " + error.message);
+        });
+    });
+
+    document.getElementById("verifyCodeBtn").addEventListener("click", () => {
+      const code = document.getElementById("verificationCode").value;
+      confirmationResult.confirm(code).then((result) => {
+        alert("✅ تم تسجيل الدخول");
+      }).catch((error) => {
+        alert("❗ رمز غير صحيح");
+      });
+    });
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -108,21 +139,6 @@
         appSection.classList.add("hidden");
         ordersDiv.innerHTML = "";
       }
-    });
-
-    document.getElementById("signupBtn").addEventListener("click", () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      createUserWithEmailAndPassword(auth, email, password)
-        .then(() => alert("✅ تم إنشاء الحساب بنجاح"))
-        .catch(e => alert("❗ خطأ: " + e.message));
-    });
-
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      signInWithEmailAndPassword(auth, email, password)
-        .catch(e => alert("❗ خطأ: " + e.message));
     });
 
     function logout() {
