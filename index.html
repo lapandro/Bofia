@@ -2,27 +2,8 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تطبيق Bofia</title>
+  <title>تطبيق Bofia - تسجيل وطلبات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <script>
-    // إعداد Firebase - استبدل القيم أدناه ببيانات مشروعك الحقيقية
-    const firebaseConfig = {
-      apiKey: "AIzaSy...ضع مفتاحك هنا...",
-      authDomain: "bofia-3370f.firebaseapp.com",
-      databaseURL: "https://bofia-3370f-default-rtdb.firebaseio.com/",
-      projectId: "bofia-3370f",
-      storageBucket: "bofia-3370f.appspot.com",
-      messagingSenderId: "XXXX",
-      appId: "1:XXXX:web:XXXX"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-  </script>
 
   <style>
     body {
@@ -51,49 +32,147 @@
       padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order span {
+      flex-grow: 1;
+    }
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 
 <body>
-  <h2>📋 إرسال الطلب</h2>
-  <input type="text" id="name" placeholder="اسم الزبون" />
-  <input type="text" id="item" placeholder="الطلب" />
-  <button onclick="sendOrder()">إرسال الطلب</button>
+  <div id="authSection">
+    <h2>🧑‍💼 تسجيل دخول الزبون</h2>
+    <input type="email" id="email" placeholder="البريد الإلكتروني" />
+    <input type="password" id="password" placeholder="كلمة المرور" />
+    <button id="loginBtn">دخول</button>
+    <button id="signupBtn">تسجيل جديد</button>
+  </div>
 
-  <hr>
+  <div id="appSection" class="hidden">
+    <h2>📋 إرسال الطلب</h2>
+    <input type="text" id="name" placeholder="اسمك" />
+    <input type="text" id="item" placeholder="الطلب" />
+    <button id="sendBtn">إرسال الطلب</button>
 
-  <h2>📦 الطلبات الحالية:</h2>
-  <div id="orders"></div>
+    <hr>
 
-  <script>
-    function sendOrder() {
-      const name = document.getElementById("name").value;
-      const item = document.getElementById("item").value;
+    <h2>📦 الطلبات الحالية:</h2>
+    <div id="orders"></div>
 
-      if (name && item) {
-        db.ref("orders").push({
+    <button onclick="logout()">🔓 تسجيل الخروج</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js";
+    import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAofstVnfa6b04e3rfMLMs9dY63_OzG9QU",
+      authDomain: "bofia-3370f.firebaseapp.com",
+      databaseURL: "https://bofia-3370f-default-rtdb.firebaseio.com",
+      projectId: "bofia-3370f",
+      storageBucket: "bofia-3370f.firebasestorage.app",
+      messagingSenderId: "953258977497",
+      appId: "1:953258977497:web:b6eca5c56850d82c29b6c8",
+      measurementId: "G-0W8NXGK08L"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const authSection = document.getElementById("authSection");
+    const appSection = document.getElementById("appSection");
+    const ordersDiv = document.getElementById("orders");
+
+    let currentUserId = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserId = user.uid;
+        authSection.classList.add("hidden");
+        appSection.classList.remove("hidden");
+        loadOrders();
+      } else {
+        currentUserId = null;
+        authSection.classList.remove("hidden");
+        appSection.classList.add("hidden");
+        ordersDiv.innerHTML = "";
+      }
+    });
+
+    document.getElementById("signupBtn").addEventListener("click", () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      createUserWithEmailAndPassword(auth, email, password)
+        .then(() => alert("✅ تم إنشاء الحساب بنجاح"))
+        .catch(e => alert("❗ خطأ: " + e.message));
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password)
+        .catch(e => alert("❗ خطأ: " + e.message));
+    });
+
+    function logout() {
+      signOut(auth);
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      const name = document.getElementById("name").value.trim();
+      const item = document.getElementById("item").value.trim();
+      if (name && item && currentUserId) {
+        push(ref(db, `orders/${currentUserId}`), {
           name: name,
           item: item,
           time: Date.now()
+        }).then(() => {
+          alert("✅ تم إرسال الطلب!");
+          document.getElementById("name").value = "";
+          document.getElementById("item").value = "";
         });
-        alert("✅ تم إرسال الطلب!");
-        document.getElementById("name").value = "";
-        document.getElementById("item").value = "";
       } else {
-        alert("❗ الرجاء إدخال الاسم والطلب");
+        alert("❗ تأكد من إدخال الاسم والطلب");
       }
+    });
+
+    function formatTime(ms) {
+      const diff = Date.now() - ms;
+      const minutes = Math.floor(diff / 60000);
+      if (minutes < 1) return "قبل لحظات";
+      if (minutes < 60) return `قبل ${minutes} دقيقة`;
+      const hours = Math.floor(minutes / 60);
+      return `قبل ${hours} ساعة`;
     }
 
-    // استقبال الطلبات
-    db.ref("orders").on("child_added", function(snapshot) {
-      const order = snapshot.val();
-      const output = document.getElementById("orders");
-      const box = document.createElement("div");
-      box.className = "order";
-      box.textContent = `🍽️ ${order.name} طلب ${order.item}`;
-      output.prepend(box);
-    });
+    function loadOrders() {
+      ordersDiv.innerHTML = "";
+      const userOrdersRef = ref(db, `orders/${currentUserId}`);
+      onChildAdded(userOrdersRef, (snapshot) => {
+        const order = snapshot.val();
+        const orderId = snapshot.key;
+        const box = document.createElement("div");
+        box.className = "order";
+        box.innerHTML = `<span>🍽️ ${order.name} طلب ${order.item} <br><small>${formatTime(order.time)}</small></span>
+                         <button onclick="deleteOrder('${orderId}')">🗑️ حذف</button>`;
+        ordersDiv.prepend(box);
+      });
+    }
+
+    window.deleteOrder = function(orderId) {
+      remove(ref(db, `orders/${currentUserId}/${orderId}`));
+    };
   </script>
 </body>
 </html>
