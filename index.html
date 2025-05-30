@@ -2,81 +2,138 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تطبيق Bofia - تسجيل برقم الهاتف</title>
+  <title>تطبيق Bofia - تسجيل الدخول والمدير</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: 'Inter', sans-serif;
       direction: rtl;
-      background-color: #fff5e1;
-      padding: 20px;
+      background-color: #fdfaf6; /* لون خلفية فاتح ودافئ */
     }
-    h2 {
-      color: #d35400;
+    /* تخصيص شريط التمرير */
+    ::-webkit-scrollbar {
+        width: 8px;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      box-sizing: border-box;
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
     }
-    button {
-      background-color: #e67e22;
-      color: white;
-      border: none;
-      cursor: pointer;
+    ::-webkit-scrollbar-thumb {
+        background: #e67e22; /* لون برتقالي */
+        border-radius: 10px;
     }
-    .order {
-      background: #f8e0b0;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .order span {
-      flex-grow: 1;
-    }
-    .hidden {
-      display: none;
+    ::-webkit-scrollbar-thumb:hover {
+        background: #d35400; /* لون برتقالي أغمق عند التحويم */
     }
   </style>
 </head>
-<body>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
 
-  <!-- واجهة المصادقة -->
-  <div id="authSection">
-    <h2>📱 تسجيل الدخول برقم الجوال</h2>
-    <input type="text" id="phoneNumber" placeholder="أدخل رقمك (مثال: +9677XXXXXXXX)" />
-    <div id="recaptcha-container"></div>
-    <button id="sendCodeBtn">📩 إرسال رمز التحقق</button>
+  <div id="appContainer" class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md md:max-w-3xl">
 
-    <input type="text" id="verificationCode" placeholder="رمز التحقق" class="hidden" />
-    <button id="verifyCodeBtn" class="hidden">✅ تأكيد الرمز</button>
-  </div>
+    <div id="authSection" class="text-center">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6">📱 تسجيل الدخول</h2>
+      <input type="text" id="phoneNumber" placeholder="أدخل رقمك (مثال: +9677XXXXXXXX)"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <div id="recaptcha-container" class="mb-4 flex justify-center"></div>
+      <button id="sendCodeBtn"
+              class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-3 px-6 rounded-md w-full transition duration-300 ease-in-out shadow-md">
+        📩 إرسال رمز التحقق
+      </button>
 
-  <!-- واجهة التطبيق بعد الدخول -->
-  <div id="appSection" class="hidden">
-    <h2>📋 إرسال الطلب</h2>
-    <input type="text" id="name" placeholder="اسمك" />
-    <input type="text" id="item" placeholder="الطلب" />
-    <button id="sendBtn">إرسال الطلب</button>
+      <input type="text" id="verificationCode" placeholder="رمز التحقق"
+             class="p-3 mt-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22] hidden" />
+      <button id="verifyCodeBtn"
+              class="bg-[#2ecc71] hover:bg-[#27ae60] text-white font-semibold py-3 px-6 rounded-md w-full mt-2 transition duration-300 ease-in-out shadow-md hidden">
+        ✅ تأكيد الرمز
+      </button>
 
-    <hr>
+      <button id="showAdminLogin"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md w-full mt-4 transition duration-300 ease-in-out">
+        دخول المدير
+      </button>
+    </div>
 
-    <h2>📦 الطلبات الحالية:</h2>
-    <div id="orders"></div>
+    <div id="adminLoginSection" class="text-center hidden">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6">🔑 دخول المدير</h2>
+      <input type="email" id="adminEmail" placeholder="البريد الإلكتروني للمدير"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <input type="password" id="adminPassword" placeholder="كلمة المرور"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <button id="adminLoginBtn"
+              class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-3 px-6 rounded-md w-full transition duration-300 ease-in-out shadow-md">
+        تسجيل دخول المدير
+      </button>
+      <button id="showUserLogin"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md w-full mt-4 transition duration-300 ease-in-out">
+        دخول المستخدم
+      </button>
+    </div>
 
-    <button onclick="logout()">🔓 تسجيل الخروج</button>
+    <div id="appSection" class="hidden">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6 text-center">📋 إرسال الطلب</h2>
+      <input type="text" id="name" placeholder="اسمك"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <input type="text" id="item" placeholder="الطلب"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <button id="sendBtn"
+              class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-3 px-6 rounded-md w-full transition duration-300 ease-in-out shadow-md">
+        إرسال الطلب
+      </button>
+
+      <hr class="my-6 border-gray-300" />
+
+      <h2 class="text-2xl font-bold text-[#d35400] mb-4 text-center">📦 الطلبات الحالية:</h2>
+      <div id="orders" class="space-y-3"></div>
+
+      <button onclick="logout()"
+              class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-md w-full mt-6 transition duration-300 ease-in-out shadow-md">
+        🔓 تسجيل الخروج
+      </button>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6 text-center">📊 لوحة تحكم المدير</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-100 p-4 rounded-lg shadow-sm">
+          <h3 class="text-xl font-semibold text-blue-800">إجمالي الطلبات</h3>
+          <p id="totalOrders" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg shadow-sm">
+          <h3 class="text-xl font-semibold text-green-800">الطلبات النشطة</h3>
+          <p id="activeOrders" class="text-3xl font-bold text-green-600 mt-2">0</p>
+        </div>
+      </div>
+
+      <h3 class="text-2xl font-bold text-[#d35400] mb-4 text-center">جميع الطلبات:</h3>
+      <div id="allOrders" class="space-y-3"></div>
+
+      <button onclick="logout()"
+              class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-md w-full mt-6 transition duration-300 ease-in-out shadow-md">
+        🔓 تسجيل الخروج
+      </button>
+    </div>
+
+    <div id="customAlert" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+      <div class="bg-white p-6 rounded-lg shadow-xl text-center w-full max-w-sm">
+        <p id="alertMessage" class="text-lg font-semibold mb-4"></p>
+        <button id="alertCloseBtn" class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+          حسناً
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
-    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onValue, update } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
 
+    // تهيئة Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAofstVnfa6b04e3rfMLMs9dY63_OzG9QU",
       authDomain: "bofia-3370f.firebaseapp.com",
@@ -91,20 +148,44 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
+    // عناصر الواجهة
     const authSection = document.getElementById("authSection");
+    const adminLoginSection = document.getElementById("adminLoginSection");
     const appSection = document.getElementById("appSection");
+    const adminPanel = document.getElementById("adminPanel");
     const ordersDiv = document.getElementById("orders");
+    const allOrdersDiv = document.getElementById("allOrders");
+    const totalOrdersSpan = document.getElementById("totalOrders");
+    const activeOrdersSpan = document.getElementById("activeOrders");
+    const customAlert = document.getElementById("customAlert");
+    const alertMessage = document.getElementById("alertMessage");
+    const alertCloseBtn = document.getElementById("alertCloseBtn");
 
     let confirmationResult;
     let currentUserId;
+    const adminEmail = "admin@bofia.com"; // البريد الإلكتروني للمدير
+    const adminPassword = "adminpassword"; // كلمة المرور للمدير (يجب أن تكون أقوى في الإنتاج)
 
+    // إعداد reCAPTCHA
     window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
       'size': 'normal',
       'callback': (response) => {
-        // reCAPTCHA solved
+        // reCAPTCHA تم حلها
       }
     }, auth);
 
+    // وظيفة عرض رسالة تنبيه مخصصة
+    function showAlert(message) {
+      alertMessage.textContent = message;
+      customAlert.classList.remove("hidden");
+    }
+
+    // إغلاق رسالة التنبيه المخصصة
+    alertCloseBtn.addEventListener("click", () => {
+      customAlert.classList.add("hidden");
+    });
+
+    // إرسال رمز التحقق (للمستخدمين العاديين)
     document.getElementById("sendCodeBtn").addEventListener("click", () => {
       const phoneNumber = document.getElementById("phoneNumber").value;
       signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
@@ -112,39 +193,91 @@
           confirmationResult = result;
           document.getElementById("verificationCode").classList.remove("hidden");
           document.getElementById("verifyCodeBtn").classList.remove("hidden");
-          alert("📩 تم إرسال الرمز إلى هاتفك");
+          showAlert("📩 تم إرسال الرمز إلى هاتفك");
         }).catch((error) => {
-          alert("❗ خطأ: " + error.message);
+          showAlert("❗ خطأ: " + error.message);
         });
     });
 
+    // تأكيد رمز التحقق (للمستخدمين العاديين)
     document.getElementById("verifyCodeBtn").addEventListener("click", () => {
       const code = document.getElementById("verificationCode").value;
       confirmationResult.confirm(code).then((result) => {
-        alert("✅ تم تسجيل الدخول");
+        showAlert("✅ تم تسجيل الدخول");
       }).catch((error) => {
-        alert("❗ رمز غير صحيح");
+        showAlert("❗ رمز غير صحيح");
       });
     });
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUserId = user.uid;
-        authSection.classList.add("hidden");
-        appSection.classList.remove("hidden");
-        loadOrders();
+    // التبديل إلى واجهة تسجيل دخول المدير
+    document.getElementById("showAdminLogin").addEventListener("click", () => {
+      authSection.classList.add("hidden");
+      adminLoginSection.classList.remove("hidden");
+    });
+
+    // التبديل إلى واجهة تسجيل دخول المستخدم
+    document.getElementById("showUserLogin").addEventListener("click", () => {
+      adminLoginSection.classList.add("hidden");
+      authSection.classList.remove("hidden");
+    });
+
+    // تسجيل دخول المدير
+    document.getElementById("adminLoginBtn").addEventListener("click", () => {
+      const email = document.getElementById("adminEmail").value;
+      const password = document.getElementById("adminPassword").value;
+
+      if (email === adminEmail && password === adminPassword) {
+        signInWithEmailAndPassword(auth, email, password)
+          .then((userCredential) => {
+            // تم تسجيل دخول المدير بنجاح
+            showAlert("✅ تم تسجيل دخول المدير بنجاح!");
+            // لا حاجة لتغيير الواجهة هنا، onAuthStateChanged سيتعامل معها
+          })
+          .catch((error) => {
+            showAlert("❗ خطأ في تسجيل دخول المدير: " + error.message);
+          });
       } else {
-        currentUserId = null;
-        authSection.classList.remove("hidden");
-        appSection.classList.add("hidden");
-        ordersDiv.innerHTML = "";
+        showAlert("❗ البريد الإلكتروني أو كلمة المرور غير صحيحة للمدير.");
       }
     });
 
-    function logout() {
-      signOut(auth);
-    }
+    // مراقبة حالة المصادقة
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserId = user.uid;
+        // التحقق مما إذا كان المستخدم هو المدير
+        if (user.email === adminEmail) {
+          authSection.classList.add("hidden");
+          appSection.classList.add("hidden");
+          adminLoginSection.classList.add("hidden");
+          adminPanel.classList.remove("hidden");
+          loadAdminDashboard();
+        } else {
+          // مستخدم عادي
+          authSection.classList.add("hidden");
+          adminLoginSection.classList.add("hidden");
+          appSection.classList.remove("hidden");
+          adminPanel.classList.add("hidden");
+          loadUserOrders();
+        }
+      } else {
+        // لا يوجد مستخدم مسجل دخول
+        currentUserId = null;
+        authSection.classList.remove("hidden");
+        adminLoginSection.classList.add("hidden");
+        appSection.classList.add("hidden");
+        adminPanel.classList.add("hidden");
+        ordersDiv.innerHTML = "";
+        allOrdersDiv.innerHTML = "";
+      }
+    });
 
+    // تسجيل الخروج
+    window.logout = function() {
+      signOut(auth);
+    };
+
+    // إرسال الطلب (للمستخدمين العاديين)
     document.getElementById("sendBtn").addEventListener("click", () => {
       const name = document.getElementById("name").value.trim();
       const item = document.getElementById("item").value.trim();
@@ -152,42 +285,131 @@
         push(ref(db, `orders/${currentUserId}`), {
           name: name,
           item: item,
-          time: Date.now()
+          time: Date.now(),
+          status: "pending" // حالة الطلب
         }).then(() => {
-          alert("✅ تم إرسال الطلب!");
+          showAlert("✅ تم إرسال الطلب!");
           document.getElementById("name").value = "";
           document.getElementById("item").value = "";
         });
       } else {
-        alert("❗ تأكد من إدخال الاسم والطلب");
+        showAlert("❗ تأكد من إدخال الاسم والطلب");
       }
     });
 
+    // تنسيق الوقت
     function formatTime(ms) {
       const diff = Date.now() - ms;
       const minutes = Math.floor(diff / 60000);
       if (minutes < 1) return "قبل لحظات";
       if (minutes < 60) return `قبل ${minutes} دقيقة`;
       const hours = Math.floor(minutes / 60);
-      return `قبل ${hours} ساعة`;
+      if (hours < 24) return `قبل ${hours} ساعة`;
+      const days = Math.floor(hours / 24);
+      return `قبل ${days} يوم`;
     }
 
-    function loadOrders() {
+    // تحميل طلبات المستخدم الحالي
+    function loadUserOrders() {
       ordersDiv.innerHTML = "";
       const userOrdersRef = ref(db, `orders/${currentUserId}`);
       onChildAdded(userOrdersRef, (snapshot) => {
         const order = snapshot.val();
         const orderId = snapshot.key;
         const box = document.createElement("div");
-        box.className = "order";
-        box.innerHTML = `<span>🍽️ ${order.name} طلب ${order.item} <br><small>${formatTime(order.time)}</small></span>
-                         <button onclick="deleteOrder('${orderId}')">🗑️ حذف</button>`;
+        box.className = "order bg-[#f8e0b0] p-3 rounded-md flex justify-between items-center shadow-sm";
+        box.innerHTML = `
+          <span>
+            <span class="font-semibold text-gray-800">🍽️ ${order.name}</span>
+            <span class="text-gray-700"> طلب </span>
+            <span class="font-semibold text-[#d35400]">${order.item}</span>
+            <br>
+            <small class="text-gray-500">${formatTime(order.time)}</small>
+            <span class="text-sm font-medium ml-2 ${order.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}">(${order.status === 'completed' ? 'مكتمل' : 'معلق'})</span>
+          </span>
+          <button onclick="deleteOrder('${orderId}')"
+                  class="bg-red-400 hover:bg-red-500 text-white p-2 rounded-full transition duration-300 ease-in-out">
+            🗑️ حذف
+          </button>
+        `;
         ordersDiv.prepend(box);
       });
     }
 
+    // حذف طلب (للمستخدمين العاديين)
     window.deleteOrder = function(orderId) {
-      remove(ref(db, `orders/${currentUserId}/${orderId}`));
+      remove(ref(db, `orders/${currentUserId}/${orderId}`))
+        .then(() => showAlert("✅ تم حذف الطلب بنجاح!"))
+        .catch(error => showAlert("❗ خطأ في الحذف: " + error.message));
+    };
+
+    // تحميل لوحة تحكم المدير
+    function loadAdminDashboard() {
+      allOrdersDiv.innerHTML = "";
+      let totalCount = 0;
+      let activeCount = 0;
+
+      // الاستماع لجميع الطلبات في قاعدة البيانات
+      onValue(ref(db, 'orders'), (snapshot) => {
+        allOrdersDiv.innerHTML = ""; // مسح الطلبات القديمة قبل إعادة التحميل
+        totalCount = 0;
+        activeCount = 0;
+
+        snapshot.forEach((userSnapshot) => {
+          const userId = userSnapshot.key;
+          userSnapshot.forEach((orderSnapshot) => {
+            const order = orderSnapshot.val();
+            const orderId = orderSnapshot.key;
+            totalCount++;
+            if (order.status === 'pending') {
+              activeCount++;
+            }
+
+            const box = document.createElement("div");
+            box.className = "order bg-[#f8e0b0] p-3 rounded-md flex justify-between items-center shadow-sm";
+            box.innerHTML = `
+              <span>
+                <span class="font-semibold text-gray-800">🍽️ ${order.name}</span>
+                <span class="text-gray-700"> طلب </span>
+                <span class="font-semibold text-[#d35400]">${order.item}</span>
+                <br>
+                <small class="text-gray-500">${formatTime(order.time)}</small>
+                <span class="text-sm font-medium ml-2 ${order.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}">(${order.status === 'completed' ? 'مكتمل' : 'معلق'})</span>
+              </span>
+              <div class="flex space-x-2 space-x-reverse">
+                <button onclick="toggleOrderStatus('${userId}', '${orderId}', '${order.status}')"
+                        class="bg-blue-400 hover:bg-blue-500 text-white p-2 rounded-full transition duration-300 ease-in-out">
+                  ${order.status === 'pending' ? '✅ إكمال' : '🔄 تعليق'}
+                </button>
+                <button onclick="deleteAdminOrder('${userId}', '${orderId}')"
+                        class="bg-red-400 hover:bg-red-500 text-white p-2 rounded-full transition duration-300 ease-in-out">
+                  🗑️ حذف
+                </button>
+              </div>
+            `;
+            allOrdersDiv.prepend(box);
+          });
+        });
+
+        totalOrdersSpan.textContent = totalCount;
+        activeOrdersSpan.textContent = activeCount;
+      });
+    }
+
+    // تبديل حالة الطلب (للمدير)
+    window.toggleOrderStatus = function(userId, orderId, currentStatus) {
+      const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+      const orderRef = ref(db, `orders/${userId}/${orderId}`);
+      update(orderRef, { status: newStatus })
+        .then(() => showAlert(`✅ تم تحديث حالة الطلب إلى ${newStatus === 'completed' ? 'مكتمل' : 'معلق'}!`))
+        .catch(error => showAlert("❗ خطأ في تحديث الحالة: " + error.message));
+    };
+
+    // حذف طلب (للمدير)
+    window.deleteAdminOrder = function(userId, orderId) {
+      remove(ref(db, `orders/${userId}/${orderId}`))
+        .then(() => showAlert("✅ تم حذف الطلب بنجاح!"))
+        .catch(error => showAlert("❗ خطأ في الحذف: " + error.message));
     };
   </script>
 </body>
