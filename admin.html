@@ -1,1 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تطبيق Bofia - لوحة تحكم المدير</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      direction: rtl;
+      background-color: #fdfaf6; /* لون خلفية فاتح ودافئ */
+    }
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #e67e22; /* لون برتقالي */
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #d35400; /* لون برتقالي أغمق عند التحويم */
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 flex items-center justify-center min-h-screen">
 
+  <div id="appContainer" class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md md:max-w-3xl">
+
+    <div id="adminLoginSection" class="text-center">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6">🔑 دخول المدير</h2>
+      <input type="email" id="adminEmailInput" placeholder="البريد الإلكتروني للمدير"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <input type="password" id="adminPasswordInput" placeholder="كلمة المرور"
+             class="p-3 mb-4 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#e67e22]" />
+      <button id="adminLoginBtn"
+              class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-3 px-6 rounded-md w-full transition duration-300 ease-in-out shadow-md">
+        تسجيل دخول المدير
+      </button>
+      <button id="goToUserLogin"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md w-full mt-4 transition duration-300 ease-in-out">
+        دخول المستخدم
+      </button>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <h2 class="text-3xl font-bold text-[#d35400] mb-6 text-center">📊 لوحة تحكم المدير</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-100 p-4 rounded-lg shadow-sm">
+          <h3 class="text-xl font-semibold text-blue-800">إجمالي الطلبات</h3>
+          <p id="totalOrders" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg shadow-sm">
+          <h3 class="text-xl font-semibold text-green-800">الطلبات النشطة</h3>
+          <p id="activeOrders" class="text-3xl font-bold text-green-600 mt-2">0</p>
+        </div>
+      </div>
+
+      <h3 class="text-2xl font-bold text-[#d35400] mb-4 text-center">جميع الطلبات:</h3>
+      <div id="allOrders" class="space-y-3"></div>
+
+      <button onclick="logout()"
+              class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-md w-full mt-6 transition duration-300 ease-in-out shadow-md">
+        🔓 تسجيل الخروج
+      </button>
+    </div>
+
+    <div id="customAlert" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl text-center w-full max-w-sm">
+        <p id="alertMessage" class="text-lg font-semibold mb-4"></p>
+        <button id="alertCloseBtn" class="bg-[#e67e22] hover:bg-[#d35400] text-white font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+          حسناً
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+    // تهيئة Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAofstVnfa6b04e3rfMLMs9dY63_OzG9QU",
+      authDomain: "bofia-3370f.firebaseapp.com",
+      databaseURL: "https://bofia-3370f-default-rtdb.firebaseio.com",
+      projectId: "bofia-3370f",
+      storageBucket: "bofia-3370f.firebasestorage.app",
+      messagingSenderId: "953258977497",
+      appId: "1:953258977497:web:b6eca5c56850d82c29b6c8"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    // عناصر الواجهة
+    const adminLoginSection = document.getElementById("adminLoginSection");
+    const adminPanel = document.getElementById("adminPanel");
+    const allOrdersDiv = document.getElementById("allOrders");
+    const totalOrdersSpan = document.getElementById("totalOrders");
+    const activeOrdersSpan = document.getElementById("activeOrders");
+    const customAlert = document.getElementById("customAlert");
+    const alertMessage = document.getElementById("alertMessage");
+    const alertCloseBtn = document.getElementById("alertCloseBtn");
+
+    const adminEmail = "admin@bofia.com"; // البريد الإلكتروني للمدير
+    const adminPassword = "adminpassword"; // كلمة المرور للمدير (يجب أن تكون أقوى في الإنتاج)
+
+    // وظيفة عرض رسالة تنبيه مخصصة
+    function showAlert(message) {
+      alertMessage.textContent = message;
+      customAlert.classList.remove("hidden");
+    }
+
+    // إغلاق رسالة التنبيه المخصصة
+    alertCloseBtn.addEventListener("click", () => {
+      customAlert.classList.add("hidden");
+    });
+
+    // تسجيل دخول المدير
+    document.getElementById("adminLoginBtn").addEventListener("click", async () => {
+      const email = document.getElementById("adminEmailInput").value.trim();
+      const password = document.getElementById("adminPasswordInput").value.trim();
+
+      if (!email || !password) {
+        showAlert("الرجاء إدخال البريد الإلكتروني وكلمة المرور للمدير.");
+        return;
+      }
+
+      // التحقق من بيانات الاعتماد الثابتة أولاً (للتطوير فقط)
+      if (email === adminEmail && password === adminPassword) {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          showAlert("✅ تم تسجيل دخول المدير بنجاح!");
+        } catch (error) {
+          console.error("Error signing in as admin via Firebase:", error);
+          showAlert("❗ خطأ في تسجيل دخول المدير عبر Firebase: " + error.message);
+          showAlert("تأكد من أن حساب المدير موجود ومفعل في Firebase Authentication.");
+        }
+      } else {
+        showAlert("❗ البريد الإلكتروني أو كلمة المرور غير صحيحة للمدير.");
+      }
+    });
+
+    // التوجيه إلى صفحة المستخدم العادي
+    document.getElementById("goToUserLogin").addEventListener("click", () => {
+      window.location.href = "index.html"; // توجيه المتصفح إلى index.html
+    });
+
+    // مراقبة حالة المصادقة
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // إذا كان المستخدم ليس المدير، أعد توجيهه إلى صفحة العميل
+        if (user.email !== adminEmail) {
+          window.location.href = "index.html";
+        } else {
+          // المدير
+          adminLoginSection.classList.add("hidden");
+          adminPanel.classList.remove("hidden");
+          loadAdminDashboard();
+        }
+      } else {
+        // لا يوجد مستخدم مسجل دخول، أو تم تسجيل الخروج
+        adminLoginSection.classList.remove("hidden");
+        adminPanel.classList.add("hidden");
+        allOrdersDiv.innerHTML = "";
+      }
+    });
+
+    // تسجيل الخروج
+    window.logout = function() {
+      signOut(auth)
+        .then(() => {
+          showAlert("🔓 تم تسجيل الخروج بنجاح.");
+          window.location.href = "index.html"; // بعد تسجيل الخروج، العودة لصفحة العميل
+        })
+        .catch(error => showAlert("❗ خطأ في تسجيل الخروج: " + error.message));
+    };
+
+    // تنسيق الوقت
+    function formatTime(ms) {
+      const diff = Date.now() - ms;
+      const minutes = Math.floor(diff / 60000);
+      if (minutes < 1) return "قبل لحظات";
+      if (minutes < 60) return `قبل ${minutes} دقيقة`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `قبل ${hours} ساعة`;
+      const days = Math.floor(hours / 24);
+      return `قبل ${days} يوم`;
+    }
+
+    // تحميل لوحة تحكم المدير
+    function loadAdminDashboard() {
+      allOrdersDiv.innerHTML = "";
+      let totalCount = 0;
+      let activeCount = 0;
+
+      // الاستماع لجميع الطلبات في قاعدة البيانات
+      onValue(ref(db, 'orders'), (snapshot) => {
+        allOrdersDiv.innerHTML = ""; // مسح الطلبات القديمة قبل إعادة التحميل
+        totalCount = 0;
+        activeCount = 0;
+        const allOrdersArray = [];
+
+        snapshot.forEach((userSnapshot) => {
+          const userId = userSnapshot.key;
+          userSnapshot.forEach((orderSnapshot) => {
+            const order = orderSnapshot.val();
+            const orderId = orderSnapshot.key;
+            allOrdersArray.push({ userId: userId, orderId: orderId, ...order });
+          });
+        });
+
+        // فرز جميع الطلبات حسب الوقت (الأحدث أولاً)
+        allOrdersArray.sort((a, b) => b.time - a.time);
+
+        allOrdersArray.forEach(order => {
+            totalCount++;
+            if (order.status === 'pending') {
+              activeCount++;
+            }
+
+            const box = document.createElement("div");
+            box.className = "order bg-[#f8e0b0] p-3 rounded-md flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm";
+            box.innerHTML = `
+              <span class="mb-2 md:mb-0">
+                <span class="font-semibold text-gray-800">🍽️ ${order.name}</span>
+                <span class="text-gray-700"> طلب </span>
+                <span class="font-semibold text-[#d35400]">${order.item}</span>
+                <br>
+                <small class="text-gray-500">${order.time ? formatTime(order.time) : 'غير معروف'}</small>
+                <span class="text-sm font-medium ml-2 ${order.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}">(${order.status === 'completed' ? 'مكتمل' : 'معلق'})</span>
+                <br>
+                <small class="text-gray-600">ID المستخدم: ${order.userId}</small>
+              </span>
+              <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 md:space-x-reverse">
+                <button onclick="toggleOrderStatus('${order.userId}', '${order.orderId}', '${order.status}')"
+                        class="bg-blue-400 hover:bg-blue-500 text-white p-2 rounded-full transition duration-300 ease-in-out w-full md:w-auto">
+                  ${order.status === 'pending' ? '✅ إكمال' : '🔄 تعليق'}
+                </button>
+                <button onclick="deleteAdminOrder('${order.userId}', '${order.orderId}')"
+                        class="bg-red-400 hover:bg-red-500 text-white p-2 rounded-full transition duration-300 ease-in-out w-full md:w-auto">
+                  🗑️ حذف
+                </button>
+              </div>
+            `;
+            allOrdersDiv.appendChild(box);
+        });
+
+        totalOrdersSpan.textContent = totalCount;
+        activeOrdersSpan.textContent = activeCount;
+      }, (error) => {
+        console.error("Error loading admin dashboard:", error);
+        showAlert("❗ خطأ في تحميل لوحة تحكم المدير: " + error.message);
+      });
+    }
+
+    // تبديل حالة الطلب (للمدير)
+    window.toggleOrderStatus = function(userId, orderId, currentStatus) {
+      const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
+      const orderRef = ref(db, `orders/${userId}/${orderId}`);
+      update(orderRef, { status: newStatus })
+        .then(() => showAlert(`✅ تم تحديث حالة الطلب إلى ${newStatus === 'completed' ? 'مكتمل' : 'معلق'}!`))
+        .catch(error => {
+          console.error("Error toggling order status:", error);
+          showAlert("❗ خطأ في تحديث الحالة: " + error.message);
+        });
+    };
+
+    // حذف طلب (للمدير)
+    window.deleteAdminOrder = function(userId, orderId) {
+      remove(ref(db, `orders/${userId}/${orderId}`))
+        .then(() => showAlert("✅ تم حذف الطلب بنجاح!"))
+        .catch(error => {
+          console.error("Error deleting admin order:", error);
+          showAlert("❗ خطأ في الحذف: " + error.message);
+        });
+    };
+  </script>
+</body>
+</html>
