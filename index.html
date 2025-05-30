@@ -1,693 +1,99 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيق المطعم</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for the app's overall look */
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            color: #333; /* Default text color */
-        }
-        .app-container {
-            background-color: #ffffff;
-            border-radius: 1rem; /* rounded-xl */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-2xl */
-            padding: 2rem; /* p-8 */
-            width: 100%;
-            max-width: 38rem; /* Increased max-width for better table display */
-            text-align: center;
-            transition: transform 0.3s ease-in-out;
-            margin-top: 20px; /* Add some margin for mobile view */
-            margin-bottom: 20px;
-        }
-        .app-container:hover {
-            transform: scale(1.02);
-        }
-        /* Message box styling */
-        .message-box {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            color: white;
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-        }
-        .message-box.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .message-box.success { background-color: #10B981; } /* green-500 */
-        .message-box.error { background-color: #EF4444; }   /* red-500 */
-        .message-box.info { background-color: #3B82F6; }    /* blue-500 */
+  <meta charset="UTF-8">
+  <title>تطبيق Bofia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        /* Table styling for lists */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-            border-radius: 0.5rem; /* Rounded corners for the table */
-            overflow: hidden; /* Ensures rounded corners are applied */
-        }
-        th, td {
-            padding: 0.75rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
-            text-align: right; /* RTL support */
-        }
-        th {
-            background-color: #e5e7eb; /* gray-200 */
-            font-weight: 600; /* font-semibold */
-            text-transform: uppercase;
-            font-size: 0.875rem; /* text-sm */
-            color: #4B5563; /* gray-700 */
-        }
-        tr:last-child td {
-            border-bottom: none; /* No border for the last row */
-        }
-        tr:hover {
-            background-color: #f9fafb; /* gray-100 */
-        }
-        /* Ensure inputs and buttons are touch-friendly */
-        input, button, select {
-            touch-action: manipulation; /* Improves responsiveness on touch devices */
-        }
-    </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    // إعداد Firebase - استبدل القيم أدناه ببيانات مشروعك الحقيقية
+    const firebaseConfig = {
+      apiKey: "AIzaSy...ضع مفتاحك هنا...",
+      authDomain: "bofia-3370f.firebaseapp.com",
+      databaseURL: "https://bofia-3370f-default-rtdb.firebaseio.com/",
+      projectId: "bofia-3370f",
+      storageBucket: "bofia-3370f.appspot.com",
+      messagingSenderId: "XXXX",
+      appId: "1:XXXX:web:XXXX"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      direction: rtl;
+      background-color: #fff5e1;
+      padding: 20px;
+    }
+    h2 {
+      color: #d35400;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .order {
+      background: #f8e0b0;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+  </style>
 </head>
+
 <body>
-    <div id="app" class="app-container">
-        </div>
+  <h2>📋 إرسال الطلب</h2>
+  <input type="text" id="name" placeholder="اسم الزبون" />
+  <input type="text" id="item" placeholder="الطلب" />
+  <button onclick="sendOrder()">إرسال الطلب</button>
 
-    <div id="message-box" class="message-box"></div>
+  <hr>
 
-    <script>
-        const appDiv = document.getElementById('app');
-        const messageBox = document.getElementById('message-box');
-        let currentView = 'login'; // Initial view
+  <h2>📦 الطلبات الحالية:</h2>
+  <div id="orders"></div>
 
-        // --- Data Management (using localStorage) ---
-        const DATA_KEY = 'restaurantAppData';
+  <script>
+    function sendOrder() {
+      const name = document.getElementById("name").value;
+      const item = document.getElementById("item").value;
 
-        function loadData() {
-            const storedData = localStorage.getItem(DATA_KEY);
-            let data;
-            if (storedData) {
-                try {
-                    data = JSON.parse(storedData);
-                } catch (e) {
-                    console.error("Error parsing stored data:", e);
-                    data = {}; // Reset if corrupted
-                }
-            } else {
-                data = {};
-            }
+      if (name && item) {
+        db.ref("orders").push({
+          name: name,
+          item: item,
+          time: Date.now()
+        });
+        alert("✅ تم إرسال الطلب!");
+        document.getElementById("name").value = "";
+        document.getElementById("item").value = "";
+      } else {
+        alert("❗ الرجاء إدخال الاسم والطلب");
+      }
+    }
 
-            // Define the new, categorized menu structure with Yemeni Rial prices
-            const defaultMenu = [
-                // فئة النفر
-                { id: 'nfr1', name: 'فاصوليا', price: 600.00, category: 'نفر' },
-                { id: 'nfr2', name: 'فاصوليا مع البيض', price: 600.00, category: 'نفر' },
-                { id: 'nfr3', name: 'فول', price: 550.00, category: 'نفر' }, // Assuming default price in YR
-                { id: 'nfr4', name: 'كبدة', price: 1000.00, category: 'نفر' }, // Assuming default price in YR
-                { id: 'nfr5', name: 'مجنونة', price: 800.00, category: 'نفر' }, // Assuming default price in YR
-
-                // فئة السندويتش
-                { id: 'snd1', name: 'فاصوليا', price: 200.00, category: 'سندويتش' }, // Assuming default price in YR
-                { id: 'snd2', name: 'بيض', price: 150.00, category: 'سندويتش' },
-                { id: 'snd3', name: 'بيض مع الطماطم', price: 300.00, category: 'سندويتش' }, // Assuming default price in YR
-                { id: 'snd4', name: 'بيض مع الجبن', price: 200.00, category: 'سندويتش' },
-                { id: 'snd5', name: 'فاصوليا مع البيض', price: 300.00, category: 'سندويتش' }, // Assuming default price in YR
-                { id: 'snd6', name: 'حلاوة وجبن', price: 250.00, category: 'سندويتش' }, // Assuming default price in YR
-                { id: 'snd7', name: 'كرافت مع الجبن', price: 300.00, category: 'سندويتش' }, // Assuming default price in YR
-                { id: 'snd8', name: 'جبن مع البيض', price: 350.00, category: 'سندويتش' }, // Assuming default price in YR
-
-                // فئة المشروبات
-                { id: 'drk1', name: 'شاهي', price: 100.00, category: 'مشروبات', units: ['عادي', 'دبل', 'دبة صحة', 'ثلاجة'] },
-                { id: 'drk2', name: 'بن', price: 150.00, category: 'مشروبات', units: ['عادي', 'دبل', 'دبة صحة', 'ثلاجة'] },
-                { id: 'drk3', name: 'ليم', price: 120.00, category: 'مشروبات', units: ['عادي'] },
-
-                // اخرى
-                { id: 'oth1', name: 'روتي', price: 20.00, category: 'اخرى' },
-                { id: 'oth2', name: 'كدم', price: 100.00, category: 'اخرى' }, // Assuming default price in YR
-                { id: 'oth3', name: 'عيش', price: 75.00, category: 'اخرى' } // Assuming default price in YR
-            ];
-
-            return {
-                users: data.users || { "admin": "1234" },
-                menu: defaultMenu, // Always use the new default menu structure
-                orders: data.orders || [], // Owner's internal orders
-                customerOrders: data.customerOrders || [], // Orders placed by customers
-                transactions: data.transactions || [],
-                balance: data.balance !== undefined ? data.balance : 0.0
-            };
-        }
-
-        let appData = loadData(); // Load data when script starts
-
-        function saveData() {
-            localStorage.setItem(DATA_KEY, JSON.stringify(appData));
-        }
-
-        // --- Utility Functions ---
-        function showMessage(msg, type) {
-            messageBox.textContent = msg;
-            messageBox.className = `message-box show ${type}`;
-            setTimeout(() => {
-                messageBox.className = 'message-box'; // Hide message
-            }, 3000);
-        }
-
-        // --- Render Functions for different views ---
-
-        function renderLogin() {
-            appDiv.innerHTML = `
-                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 flex items-center justify-center">
-                    مرحبًا بك في بوفية فكري القباطي 🍽️
-                </h2>
-                <form id="login-form" class="space-y-6">
-                    <div>
-                        <input type="text" id="username" placeholder="اسم المستخدم" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-lg" required>
-                    </div>
-                    <div>
-                        <input type="password" id="password" placeholder="كلمة المرور" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-lg" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-xl hover:bg-blue-700 transition duration-300 shadow-lg transform hover:scale-105">
-                        تسجيل الدخول (المالك)
-                    </button>
-                </form>
-                <div class="mt-6">
-                    <button id="customer-entry-btn" class="w-full bg-green-500 text-white py-4 rounded-lg font-bold text-xl hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
-                        الدخول كزبون 🧑‍🍳
-                    </button>
-                </div>
-                <p class="text-sm text-gray-500 mt-4">
-                    <span class="font-semibold">اسم المستخدم للمالك:</span> admin, <span class="font-semibold">كلمة المرور:</span> 1234
-                </p>
-            `;
-
-            document.getElementById('login-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-
-                if (username === "admin" && password === "1234") {
-                    showMessage("تم تسجيل الدخول بنجاح ✅", 'success');
-                    currentView = 'dashboard';
-                    renderApp();
-                } else {
-                    showMessage("فشل في تسجيل الدخول ❌", 'error');
-                }
-            });
-
-            document.getElementById('customer-entry-btn').addEventListener('click', () => {
-                currentView = 'customerOrder';
-                renderApp();
-                showMessage('مرحبًا أيها الزبون! اختر طلباتك.', 'info');
-            });
-        }
-
-        function renderDashboard() {
-            appDiv.innerHTML = `
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-6 flex items-center justify-between">
-                    <span>لوحة التحكم 📊</span>
-                    <button id="logout-btn" class="bg-red-500 text-white py-2 px-4 rounded-lg font-semibold text-base hover:bg-red-600 transition duration-300 shadow-md">
-                        تسجيل الخروج 👋
-                    </button>
-                </h2>
-
-                <div class="flex flex-wrap justify-center gap-4 mb-8">
-                    <button class="nav-btn py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-md bg-blue-600 text-white transform scale-105" data-view="addOrder">إضافة طلب (داخلي)</button>
-                    <button class="nav-btn py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-md bg-gray-200 text-gray-800 hover:bg-gray-300" data-view="viewOrders">عرض الطلبات (داخلية)</button>
-                    <button class="nav-btn py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-md bg-gray-200 text-gray-800 hover:bg-gray-300" data-view="addTransaction">إضافة معاملة</button>
-                    <button class="nav-btn py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-md bg-gray-200 text-gray-800 hover:bg-gray-300" data-view="viewBalance">عرض الرصيد</button>
-                    <button class="nav-btn py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-md bg-gray-200 text-gray-800 hover:bg-gray-300" data-view="viewCustomerOrders">عرض طلبات الزبائن</button>
-                </div>
-
-                <div id="dashboard-content" class="bg-gray-50 p-6 rounded-lg shadow-inner mt-4">
-                    مرحبًا بك في لوحة التحكم! اختر عملية من الأعلى.
-                </div>
-            `;
-
-            document.getElementById('logout-btn').addEventListener('click', () => {
-                currentView = 'login';
-                renderApp();
-                showMessage('تم تسجيل الخروج 👋', 'info');
-            });
-
-            document.querySelectorAll('.nav-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const targetView = e.target.dataset.view;
-                    document.querySelectorAll('.nav-btn').forEach(btn => {
-                        btn.classList.remove('bg-blue-600', 'text-white', 'transform', 'scale-105');
-                        btn.classList.add('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
-                    });
-                    e.target.classList.add('bg-blue-600', 'text-white', 'transform', 'scale-105');
-                    e.target.classList.remove('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
-                    currentView = targetView;
-                    renderDashboardContent();
-                });
-            });
-            // Set initial active button and content based on currentView
-            const initialNavButton = document.querySelector(`.nav-btn[data-view="${currentView}"]`);
-            if (initialNavButton) {
-                initialNavButton.classList.remove('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
-                initialNavButton.classList.add('bg-blue-600', 'text-white', 'transform', 'scale-105');
-            }
-            renderDashboardContent(); // Initial render of dashboard content
-        }
-
-        function renderDashboardContent() {
-            const contentDiv = document.getElementById('dashboard-content');
-            switch (currentView) {
-                case 'addOrder':
-                    contentDiv.innerHTML = `
-                        <h3 class="text-2xl font-bold text-gray-700 mb-4">إضافة طلب جديد (داخلي)</h3>
-                        <form id="add-order-form" class="space-y-4">
-                            <input type="text" id="order-item" placeholder="اسم المنتج" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-blue-400 text-lg" required>
-                            <input type="number" id="order-quantity" placeholder="الكمية" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-blue-400 text-lg" required>
-                            <input type="number" step="0.01" id="order-price" placeholder="سعر الوحدة" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-blue-400 text-lg" required>
-                            <button type="submit" class="w-full bg-green-500 text-white py-3 rounded-lg font-bold text-xl hover:bg-green-600 transition duration-300 shadow-md">
-                                إضافة الطلب
-                            </button>
-                        </form>
-                    `;
-                    document.getElementById('add-order-form').addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        const item = document.getElementById('order-item').value;
-                        const quantity = parseInt(document.getElementById('order-quantity').value);
-                        const price = parseFloat(document.getElementById('order-price').value);
-
-                        if (!item || isNaN(quantity) || isNaN(price) || quantity <= 0 || price <= 0) {
-                            showMessage("يرجى إدخال بيانات صحيحة (اسم، كمية رقمية موجبة، سعر رقمي موجب).", 'error');
-                            return;
-                        }
-
-                        const order = { item, quantity, price, total: quantity * price, timestamp: new Date().toLocaleString() };
-                        appData.orders.push(order);
-                        saveData();
-                        showMessage(`تمت إضافة الطلب: ${item} بنجاح.`, 'success');
-                        document.getElementById('order-item').value = '';
-                        document.getElementById('order-quantity').value = '';
-                        document.getElementById('order-price').value = '';
-                    });
-                    break;
-                case 'viewOrders':
-                    if (appData.orders.length === 0) {
-                        contentDiv.innerHTML = `<div class="text-center text-gray-600">لا توجد طلبات داخلية حاليًا.</div>`;
-                    } else {
-                        let tableHtml = `
-                            <h3 class="text-2xl font-bold text-gray-700 mb-4">قائمة الطلبات (داخلية)</h3>
-                            <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg shadow-md">
-                                <thead>
-                                    <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
-                                        <th>المنتج</th>
-                                        <th>الكمية</th>
-                                        <th>السعر (ريال)</th>
-                                        <th>الإجمالي (ريال)</th>
-                                        <th>الوقت</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-gray-600 text-sm font-light">
-                        `;
-                        appData.orders.forEach(order => {
-                            tableHtml += `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td>${order.item}</td>
-                                    <td>${order.quantity}</td>
-                                    <td>${order.price.toFixed(2)}</td>
-                                    <td class="font-semibold">${order.total.toFixed(2)}</td>
-                                    <td>${order.timestamp || 'N/A'}</td>
-                                </tr>
-                            `;
-                        });
-                        tableHtml += `
-                                </tbody>
-                            </table>
-                            </div>
-                        `;
-                        contentDiv.innerHTML = tableHtml;
-                    }
-                    break;
-                case 'addTransaction':
-                    contentDiv.innerHTML = `
-                        <h3 class="text-2xl font-bold text-gray-700 mb-4">إضافة معاملة مالية</h3>
-                        <form id="add-transaction-form" class="space-y-4">
-                            <div class="flex justify-center gap-4">
-                                <label class="flex items-center text-lg text-gray-700">
-                                    <input type="radio" name="transaction_type" value="deposit" checked class="form-radio h-5 w-5 text-blue-600">
-                                    <span class="mr-2">إيداع</span>
-                                </label>
-                                <label class="flex items-center text-lg text-gray-700">
-                                    <input type="radio" name="transaction_type" value="withdrawal" class="form-radio h-5 w-5 text-blue-600">
-                                    <span class="mr-2">سحب</span>
-                                </label>
-                            </div>
-                            <input type="number" step="0.01" id="transaction-amount" placeholder="المبلغ" class="w-full p-3 border border-gray-300 rounded-md focus:ring focus:ring-blue-400 text-lg" required>
-                            <button type="submit" class="w-full bg-purple-500 text-white py-3 rounded-lg font-bold text-xl hover:bg-purple-600 transition duration-300 shadow-md">
-                                إضافة المعاملة
-                            </button>
-                        </form>
-                    `;
-                    document.getElementById('add-transaction-form').addEventListener('submit', (e) => {
-                        e.preventDefault();
-                        const type = document.querySelector('input[name="transaction_type"]:checked').value;
-                        const amount = parseFloat(document.getElementById('transaction-amount').value);
-
-                        if (isNaN(amount) || amount <= 0) {
-                            showMessage("المبلغ يجب أن يكون رقمًا موجبًا.", 'error');
-                            return;
-                        }
-
-                        if (type === "deposit") {
-                            appData.balance += amount;
-                            appData.transactions.push({ type: "إيداع", amount: amount, timestamp: new Date().toLocaleString() });
-                            showMessage(`تم إيداع ${amount.toFixed(2)} ريال. الرصيد الحالي: ${appData.balance.toFixed(2)} ريال`, 'success');
-                        } else if (type === "withdrawal") {
-                            if (appData.balance >= amount) {
-                                appData.balance -= amount;
-                                appData.transactions.push({ type: "سحب", amount: amount, timestamp: new Date().toLocaleString() });
-                                showMessage(`تم سحب ${amount.toFixed(2)} ريال. الرصيد الحالي: ${appData.balance.toFixed(2)} ريال`, 'success');
-                            } else {
-                                showMessage("الرصيد غير كافٍ لإجراء السحب.", 'error');
-                            }
-                        }
-                        saveData();
-                        document.getElementById('transaction-amount').value = '';
-                    });
-                    break;
-                case 'viewBalance':
-                    let transactionsHtml = '';
-                    if (appData.transactions.length === 0) {
-                        transactionsHtml = `<div class="text-center text-gray-600">لا توجد معاملات سابقة.</div>`;
-                    } else {
-                        transactionsHtml = `
-                            <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg shadow-md">
-                                <thead>
-                                    <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
-                                        <th>النوع</th>
-                                        <th>المبلغ (ريال)</th>
-                                        <th>الوقت</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-gray-600 text-sm font-light">
-                        `;
-                        appData.transactions.forEach(trans => {
-                            transactionsHtml += `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td>${trans.type}</td>
-                                    <td>${trans.amount.toFixed(2)}</td>
-                                    <td>${trans.timestamp || 'N/A'}</td>
-                                </tr>
-                            `;
-                        });
-                        transactionsHtml += `
-                                </tbody>
-                            </table>
-                            </div>
-                        `;
-                    }
-                    contentDiv.innerHTML = `
-                        <h3 class="text-2xl font-bold text-gray-700 mb-4">الرصيد والمعاملات</h3>
-                        <p class="text-3xl font-bold text-blue-600 mb-6">
-                            الرصيد الحالي: ${appData.balance.toFixed(2)} ريال
-                        </p>
-                        ${transactionsHtml}
-                    `;
-                    break;
-                case 'viewCustomerOrders':
-                    if (appData.customerOrders.length === 0) {
-                        contentDiv.innerHTML = `<div class="text-center text-gray-600">لا توجد طلبات زبائن معلقة حاليًا.</div>`;
-                    } else {
-                        let ordersHtml = `
-                            <h3 class="text-2xl font-bold text-gray-700 mb-4">طلبات الزبائن</h3>
-                            <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white rounded-lg shadow-md">
-                                <thead>
-                                    <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
-                                        <th>الطلب</th>
-                                        <th>الإجمالي (ريال)</th>
-                                        <th>الوقت</th>
-                                        <th>الإجراء</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-gray-600 text-sm font-light">
-                        `;
-                        appData.customerOrders.forEach((order, index) => {
-                            const itemsList = order.items.map(item => {
-                                let itemDisplay = `${item.name} (${item.quantity})`;
-                                if (item.unit && item.unit !== 'عادي') { // Only show unit if not default 'عادي'
-                                    itemDisplay += ` - ${item.unit}`;
-                                }
-                                return itemDisplay;
-                            }).join(', ');
-                            ordersHtml += `
-                                <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td>${itemsList}</td>
-                                    <td class="font-semibold">${order.total.toFixed(2)}</td>
-                                    <td>${order.timestamp || 'N/A'}</td>
-                                    <td>
-                                        <button class="bg-green-500 text-white py-1 px-3 rounded-md text-sm hover:bg-green-600 action-btn" data-action="complete" data-index="${index}">
-                                            تم التحضير
-                                        </button>
-                                        <button class="bg-red-500 text-white py-1 px-3 rounded-md text-sm hover:bg-red-600 action-btn" data-action="delete" data-index="${index}">
-                                            حذف
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                        ordersHtml += `
-                                </tbody>
-                            </table>
-                            </div>
-                        `;
-                        contentDiv.innerHTML = ordersHtml;
-
-                        document.querySelectorAll('.action-btn').forEach(button => {
-                            button.addEventListener('click', (e) => {
-                                const action = e.target.dataset.action;
-                                const index = parseInt(e.target.dataset.index);
-                                if (action === 'complete') {
-                                    appData.customerOrders.splice(index, 1);
-                                    saveData();
-                                    showMessage('تم تأكيد الطلب وإزالته من القائمة.', 'success');
-                                } else if (action === 'delete') {
-                                    appData.customerOrders.splice(index, 1);
-                                    saveData();
-                                    showMessage('تم حذف الطلب.', 'info');
-                                }
-                                renderDashboardContent(); // Re-render to update the list
-                            });
-                        });
-                    }
-                    break;
-                default:
-                    contentDiv.innerHTML = `
-                        <div class="text-gray-600 text-lg">
-                            مرحبًا بك في لوحة التحكم! اختر عملية من الأعلى.
-                        </div>
-                    `;
-                    break;
-            }
-        }
-
-        function renderCustomerOrder() {
-            const categories = ['نفر', 'سندويتش', 'مشروبات', 'اخرى'];
-            let menuHtml = `
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-6">قائمة الطعام 📋</h2>
-                <div id="menu-items-container" class="space-y-6">
-            `;
-
-            categories.forEach(category => {
-                const itemsInCategory = appData.menu.filter(item => item.category === category);
-                if (itemsInCategory.length > 0) {
-                    menuHtml += `
-                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner">
-                            <h3 class="text-2xl font-bold text-gray-700 mb-4 text-right">${category}</h3>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full bg-white rounded-lg shadow-md">
-                                    <thead>
-                                        <tr class="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
-                                            <th class="py-2 px-4 text-right">المنتج</th>
-                                            <th class="py-2 px-4 text-right">السعر (ريال)</th>
-                                            <th class="py-2 px-4 text-center">الكمية</th>
-                                            ${category === 'مشروبات' ? '<th class="py-2 px-4 text-center">الوحدة</th>' : ''}
-                                        </tr>
-                                    </thead>
-                                    <tbody class="text-gray-600 text-sm font-light">
-                    `;
-                    itemsInCategory.forEach(item => {
-                        const unitSelect = item.units ? `
-                            <select data-item-id="${item.id}" class="w-full p-2 border border-gray-300 rounded-md text-center unit-select text-base">
-                                ${item.units.map(unit => `<option value="${unit}">${unit}</option>`).join('')}
-                            </select>
-                        ` : '';
-                        menuHtml += `
-                            <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                <td class="py-2 px-4 text-right whitespace-nowrap">${item.name}</td>
-                                <td class="py-2 px-4 text-right">${item.price.toFixed(2)} ريال</td>
-                                <td class="py-2 px-4 text-center">
-                                    <input type="number" min="0" value="0" data-item-id="${item.id}"
-                                        class="w-20 p-2 border border-gray-300 rounded-md text-center quantity-input text-base">
-                                </td>
-                                ${category === 'مشروبات' ? `<td class="py-2 px-4 text-center">${unitSelect}</td>` : ''}
-                            </tr>
-                        `;
-                    });
-                    menuHtml += `
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-
-            menuHtml += `
-                </div>
-                <div class="border-t pt-4 mt-6">
-                    <h3 class="text-2xl font-bold text-gray-700 mb-4">ملخص الطلب 🛒</h3>
-                    <div id="cart-summary" class="text-gray-700 text-lg mb-4 text-right">
-                        لا توجد عناصر في السلة.
-                    </div>
-                    <button id="place-order-btn" class="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-xl hover:bg-blue-700 transition duration-300 shadow-lg transform hover:scale-105">
-                        تأكيد الطلب
-                    </button>
-                    <button id="customer-back-btn" class="w-full bg-gray-400 text-white py-3 rounded-lg font-bold text-lg hover:bg-gray-500 transition duration-300 shadow-md mt-3">
-                        العودة لشاشة الدخول
-                    </button>
-                </div>
-            `;
-            appDiv.innerHTML = menuHtml;
-
-            const quantityInputs = document.querySelectorAll('.quantity-input');
-            const unitSelects = document.querySelectorAll('.unit-select');
-            const cartSummary = document.getElementById('cart-summary');
-            let customerCart = [];
-
-            function updateCartSummary() {
-                customerCart = [];
-                let total = 0;
-
-                quantityInputs.forEach(input => {
-                    const itemId = input.dataset.itemId;
-                    const quantity = parseInt(input.value);
-                    const item = appData.menu.find(m => m.id === itemId);
-
-                    if (quantity > 0 && item) {
-                        let unit = '';
-                        if (item.category === 'مشروبات') {
-                            const unitInput = document.querySelector(`.unit-select[data-item-id="${itemId}"]`);
-                            if (unitInput) {
-                                unit = unitInput.value;
-                            }
-                        }
-                        customerCart.push({ id: item.id, name: item.name, quantity: quantity, price: item.price, unit: unit });
-                        total += quantity * item.price;
-                    }
-                });
-
-                if (customerCart.length === 0) {
-                    cartSummary.innerHTML = `لا توجد عناصر في السلة.`;
-                } else {
-                    let summaryText = 'عناصر السلة: ';
-                    summaryText += customerCart.map(item => {
-                        let itemDisplay = `${item.name} (${item.quantity})`;
-                        if (item.unit && item.unit !== 'عادي') { // Only show unit if not default 'عادي'
-                            itemDisplay += ` - ${item.unit}`;
-                        }
-                        return itemDisplay;
-                    }).join(', ');
-                    summaryText += `<br>الإجمالي: ${total.toFixed(2)} ريال`;
-                    cartSummary.innerHTML = summaryText;
-                }
-            }
-
-            quantityInputs.forEach(input => {
-                input.addEventListener('change', updateCartSummary);
-                input.addEventListener('keyup', updateCartSummary);
-            });
-
-            unitSelects.forEach(select => {
-                select.addEventListener('change', updateCartSummary);
-            });
-
-            document.getElementById('place-order-btn').addEventListener('click', () => {
-                if (customerCart.length === 0) {
-                    showMessage('الرجاء إضافة عناصر إلى السلة أولاً.', 'error');
-                    return;
-                }
-                let totalOrderPrice = 0;
-                customerCart.forEach(item => {
-                    totalOrderPrice += item.quantity * item.price;
-                });
-
-                const newCustomerOrder = {
-                    items: customerCart,
-                    total: totalOrderPrice,
-                    timestamp: new Date().toLocaleString(),
-                    status: 'جديد' // New status for customer orders
-                };
-                appData.customerOrders.push(newCustomerOrder);
-                saveData();
-                showMessage('تم استلام طلبك بنجاح! شكراً لك.', 'success');
-
-                // Clear cart and reset quantities
-                quantityInputs.forEach(input => input.value = '0');
-                unitSelects.forEach(select => select.value = select.options[0].value); // Reset to first option
-                updateCartSummary();
-            });
-
-            document.getElementById('customer-back-btn').addEventListener('click', () => {
-                currentView = 'login';
-                renderApp();
-            });
-
-            updateCartSummary(); // Initial cart summary display
-        }
-
-        // Main render function to switch between views
-        function renderApp() {
-            switch (currentView) {
-                case 'login':
-                    renderLogin();
-                    break;
-                case 'dashboard':
-                    renderDashboard();
-                    break;
-                case 'addOrder':
-                case 'viewOrders':
-                case 'addTransaction':
-                case 'viewBalance':
-                case 'viewCustomerOrders':
-                    renderDashboard(); // Dashboard handles its own content rendering
-                    break;
-                case 'customerOrder':
-                    renderCustomerOrder();
-                    break;
-                default:
-                    renderLogin(); // Fallback to login
-            }
-        }
-
-        // Initial render when the page loads
-        document.addEventListener('DOMContentLoaded', renderApp);
-    </script>
+    // استقبال الطلبات
+    db.ref("orders").on("child_added", function(snapshot) {
+      const order = snapshot.val();
+      const output = document.getElementById("orders");
+      const box = document.createElement("div");
+      box.className = "order";
+      box.textContent = `🍽️ ${order.name} طلب ${order.item}`;
+      output.prepend(box);
+    });
+  </script>
 </body>
 </html>
